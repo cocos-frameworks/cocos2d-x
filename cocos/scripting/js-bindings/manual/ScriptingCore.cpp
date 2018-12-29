@@ -396,17 +396,7 @@ bool JSB_core_restartVM(JSContext *cx, uint32_t argc, jsval *vp)
 
 bool JSB_closeWindow(JSContext *cx, uint32_t argc, jsval *vp)
 {
-    EventListenerCustom* _event = Director::getInstance()->getEventDispatcher()->addCustomEventListener(Director::EVENT_AFTER_DRAW, [&](EventCustom *event) {
-        Director::getInstance()->getEventDispatcher()->removeEventListener(_event);
-        CC_SAFE_RELEASE(_event);
-        
-        ScriptingCore::getInstance()->cleanup();
-    });
-    _event->retain();
     Director::getInstance()->end();
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
-    exit(0);
-#endif
     return true;
 };
 
@@ -443,7 +433,7 @@ void registerDefaultClasses(JSContext* cx, JS::HandleObject global) {
 
     // register some global functions
     JS_DefineFunction(cx, global, "require", ScriptingCore::executeScript, 1, JSPROP_PERMANENT);
-    JS_DefineFunction(cx, global, "ccrequire", ScriptingCore::executeScript, 1, JSPROP_PERMANENT);
+    JS_DefineFunction(cx, global, "ccrequire", ScriptingCore::executeScript, 1, JSPROP_PERMANENT); // added by me
     JS_DefineFunction(cx, global, "log", ScriptingCore::log, 0, JSPROP_PERMANENT);
     JS_DefineFunction(cx, global, "executeScript", ScriptingCore::executeScript, 1, JSPROP_READONLY | JSPROP_PERMANENT);
     JS_DefineFunction(cx, global, "forceGC", ScriptingCore::forceGC, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1428,7 +1418,7 @@ bool ScriptingCore::handleTouchesEvent(void* nativeObj, cocos2d::EventTouch::Eve
 
     for (const auto& touch : touches)
     {
-        JS::RootedValue jsret(_cx, OBJECT_TO_JSVAL(jsb_get_or_create_weak_jsobject(_cx, touch, typeClassTouch)));
+        JS::RootedValue jsret(_cx, OBJECT_TO_JSVAL(jsb_ref_get_or_create_jsobject(_cx, touch, typeClassTouch, "cocos2d::Touch")));
         if (!JS_SetElement(_cx, jsretArr, count, jsret))
         {
             break;
@@ -1441,7 +1431,7 @@ bool ScriptingCore::handleTouchesEvent(void* nativeObj, cocos2d::EventTouch::Eve
     {
         jsval dataVal[2];
         dataVal[0] = OBJECT_TO_JSVAL(jsretArr);
-        dataVal[1] = OBJECT_TO_JSVAL(jsb_get_or_create_weak_jsobject(_cx, event, typeClassEvent));
+        dataVal[1] = OBJECT_TO_JSVAL(jsb_ref_get_or_create_jsobject(_cx, event, typeClassEvent, "cocos2d::EventTouch"));
         ret = executeFunctionWithOwner(OBJECT_TO_JSVAL(p->obj), funcName.c_str(), 2, dataVal, jsvalRet);
         // event is created on the heap and its destructor won't be invoked, so we need to remove JS object manually
         removeJSObject(_cx, event);
@@ -1468,8 +1458,8 @@ bool ScriptingCore::handleTouchEvent(void* nativeObj, cocos2d::EventTouch::Event
         js_type_class_t *typeClassEvent = js_get_type_from_native<cocos2d::EventTouch>((cocos2d::EventTouch*)event);
 
         jsval dataVal[2];
-        dataVal[0] = OBJECT_TO_JSVAL(jsb_get_or_create_weak_jsobject(_cx, touch, typeClassTouch));
-        dataVal[1] = OBJECT_TO_JSVAL(jsb_get_or_create_weak_jsobject(_cx, event, typeClassEvent));
+        dataVal[0] = OBJECT_TO_JSVAL(jsb_ref_get_or_create_jsobject(_cx, touch, typeClassTouch, "cocos2d::Touch"));
+        dataVal[1] = OBJECT_TO_JSVAL(jsb_ref_get_or_create_jsobject(_cx, event, typeClassEvent, "cocos2d::Touch"));
 
         ret = executeFunctionWithOwner(OBJECT_TO_JSVAL(p->obj), funcName.c_str(), 2, dataVal, jsvalRet);
         // event is created on the heap and its destructor won't be invoked, so we need to remove JS object manually
@@ -1494,7 +1484,7 @@ bool ScriptingCore::handleMouseEvent(void* nativeObj, cocos2d::EventMouse::Mouse
     if (p)
     {
         js_type_class_t *typeClass = js_get_type_from_native<cocos2d::EventMouse>((cocos2d::EventMouse*)event);
-        jsval dataVal = OBJECT_TO_JSVAL(jsb_get_or_create_weak_jsobject(_cx, event, typeClass));
+        jsval dataVal = OBJECT_TO_JSVAL(jsb_ref_get_or_create_jsobject(_cx, event, typeClass, "cocos2d::EventMouse"));
         ret = executeFunctionWithOwner(OBJECT_TO_JSVAL(p->obj), funcName.c_str(), 1, &dataVal, jsvalRet);
         // event is created on the heap and its destructor won't be invoked, so we need to remove JS object manually
         removeJSObject(_cx, event);
@@ -1633,7 +1623,7 @@ int ScriptingCore::executeCustomTouchesEvent(EventTouch::EventCode eventType,
     {
         js_type_class_t *typeClass = js_get_type_from_native<cocos2d::Touch>(touch);
 
-        jsval jsret = OBJECT_TO_JSVAL(jsb_get_or_create_weak_jsobject(this->_cx, touch, typeClass));
+        jsval jsret = OBJECT_TO_JSVAL(jsb_ref_get_or_create_jsobject(this->_cx, touch, typeClass, "cocos2d::Touch"));
         JS::RootedValue jsval(_cx, jsret);
         if (!JS_SetElement(this->_cx, jsretArr, count, jsval)) {
             break;
@@ -1654,7 +1644,7 @@ int ScriptingCore::executeCustomTouchEvent(EventTouch::EventCode eventType, Touc
     std::string funcName = getTouchFuncName(eventType);
 
     js_type_class_t *typeClass = js_get_type_from_native<cocos2d::Touch>(touch);
-    jsval jsTouch = OBJECT_TO_JSVAL(jsb_get_or_create_weak_jsobject(this->_cx, touch, typeClass));
+    jsval jsTouch = OBJECT_TO_JSVAL(jsb_ref_get_or_create_jsobject(this->_cx, touch, typeClass, "cocos2d::Touch"));
 
     executeFunctionWithOwner(OBJECT_TO_JSVAL(obj), funcName.c_str(), 1, &jsTouch, &retval);
 
@@ -1671,7 +1661,7 @@ int ScriptingCore::executeCustomTouchEvent(EventTouch::EventCode eventType,
     std::string funcName = getTouchFuncName(eventType);
 
     js_type_class_t *typeClass = js_get_type_from_native<cocos2d::Touch>(touch);
-    jsval jsTouch = OBJECT_TO_JSVAL(jsb_get_or_create_weak_jsobject(this->_cx, touch, typeClass));
+    jsval jsTouch = OBJECT_TO_JSVAL(jsb_ref_get_or_create_jsobject(this->_cx, touch, typeClass, "cocos2d::Touch"));
 
     executeFunctionWithOwner(OBJECT_TO_JSVAL(obj), funcName.c_str(), 1, &jsTouch, retval);
 
