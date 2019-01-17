@@ -937,10 +937,26 @@ void ScriptingCore::cleanup()
 
 void ScriptingCore::reportError(JSContext *cx, const char *message, JSErrorReport *report)
 {
-    js_log("%s:%u:%s\n",
-            report->filename ? report->filename : "<no filename=\"filename\">",
-            (unsigned int) report->lineno,
-            message);
+    std::string filename = report->filename ? report->filename : "<no filename=\"filename\">";
+    std::string msg = message != nullptr ? message : "";
+    //js_log("%s:%u:%s\n",
+    //        filename.c_str(),
+    //        (unsigned int) report->lineno,
+    //        msg.c_str());
+    
+    if (JS_IsExceptionPending(cx)) {
+        JS_ClearPendingException(cx);
+    }
+    const int ARGC = 3;
+    JS::Value values[ARGC] = {
+        std_string_to_jsval(cx, filename),
+        int32_to_jsval(cx, report->lineno),
+        std_string_to_jsval(cx, msg)
+    };
+    ScriptingCore* sc = ScriptingCore::getInstance();
+    JS::RootedValue retVal(cx);
+    JS::RootedValue global(cx, OBJECT_TO_JSVAL(sc->getGlobalObject()));
+    sc->executeFunctionWithOwner(global, "__errorHandler", ARGC, values, &retVal);
 };
 
 
