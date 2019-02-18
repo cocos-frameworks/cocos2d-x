@@ -833,4 +833,28 @@ public class Cocos2dxHelper {
 
         return sCocos2dSound;
     }
+
+    // NOTE: added by myself
+
+    // copy to clipboard
+    public static int copyToClipboard(final String text) {
+        try {
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    Context context = Cocos2dxActivity.getContext();
+                    android.content.ClipboardManager clipboard =
+                            (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                    android.content.ClipData data = android.content.ClipData.newPlainText("copied", text);
+                    clipboard.setPrimaryClip(data);
+                }
+            };
+            ((Cocos2dxActivity)sActivity).runOnUiThread(runnable);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+        return 0;
+    }
+
 }
