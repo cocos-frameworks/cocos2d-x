@@ -2357,6 +2357,26 @@ getAssetsManagerEx : function (
 },
 
 /**
+ * @method getDownloadedFiles
+ * @return {int}
+ */
+getDownloadedFiles : function (
+)
+{
+    return 0;
+},
+
+/**
+ * @method getTotalFiles
+ * @return {int}
+ */
+getTotalFiles : function (
+)
+{
+    return 0;
+},
+
+/**
  * @method getAssetId
  * @return {String}
  */
@@ -2364,6 +2384,16 @@ getAssetId : function (
 )
 {
     return ;
+},
+
+/**
+ * @method getTotalBytes
+ * @return {double}
+ */
+getTotalBytes : function (
+)
+{
+    return 0;
 },
 
 /**
@@ -2421,6 +2451,16 @@ getEventCode : function (
  * @return {float}
  */
 getPercent : function (
+)
+{
+    return 0;
+},
+
+/**
+ * @method getDownloadedBytes
+ * @return {double}
+ */
+getDownloadedBytes : function (
 )
 {
     return 0;
@@ -2538,10 +2578,30 @@ getSearchPaths : function (
 cc.AssetsManager = {
 
 /**
+ * @method getDownloadedFiles
+ * @return {int}
+ */
+getDownloadedFiles : function (
+)
+{
+    return 0;
+},
+
+/**
  * @method getState
  * @return {cc.AssetsManagerEx::State}
  */
 getState : function (
+)
+{
+    return 0;
+},
+
+/**
+ * @method getTotalFiles
+ * @return {int}
+ */
+getTotalFiles : function (
 )
 {
     return 0;
@@ -2563,6 +2623,16 @@ getMaxConcurrentTask : function (
 checkUpdate : function (
 )
 {
+},
+
+/**
+ * @method getTotalBytes
+ * @return {double}
+ */
+getTotalBytes : function (
+)
+{
+    return 0;
 },
 
 /**
@@ -2639,6 +2709,16 @@ getRemoteManifest : function (
 downloadFailedAssets : function (
 )
 {
+},
+
+/**
+ * @method getDownloadedBytes
+ * @return {double}
+ */
+getDownloadedBytes : function (
+)
+{
+    return 0;
 },
 
 /**

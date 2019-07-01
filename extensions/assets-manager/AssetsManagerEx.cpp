@@ -69,6 +69,9 @@ AssetsManagerEx::AssetsManagerEx(const std::string& manifestUrl, const std::stri
 , _updateEntry(UpdateEntry::NONE)
 , _percent(0)
 , _percentByFile(0)
+, _totalSize(0)
+, _sizeCollected(0)
+, _totalDownloaded(0)
 , _totalToDownload(0)
 , _totalWaitToDownload(0)
 , _nextSavePoint(0.0)
@@ -676,7 +679,7 @@ void AssetsManagerEx::startUpdate()
     _downloadUnits.clear();
     _totalWaitToDownload = _totalToDownload = 0;
     _nextSavePoint = 0;
-    _percent = _percentByFile = _sizeCollected = _totalSize = 0;
+    _percent = _percentByFile = _sizeCollected = _totalSize = _totalDownloaded = 0;
     _downloadedSize.clear();
     _totalEnabled = false;
     
@@ -925,7 +928,7 @@ void AssetsManagerEx::updateAssets(const DownloadUnits& assets)
         _updateState = State::UPDATING;
         _downloadUnits.clear();
         _downloadedSize.clear();
-        _percent = _percentByFile = _sizeCollected = _totalSize = 0;
+        _percent = _percentByFile = _sizeCollected = _totalSize = _totalDownloaded = 0;
         _totalWaitToDownload = _totalToDownload = (int)assets.size();
         _nextSavePoint = 0;
         _totalEnabled = false;
@@ -1036,7 +1039,7 @@ void AssetsManagerEx::onProgress(double total, double downloaded, const std::str
     {
         // Calcul total downloaded
         bool found = false;
-        double totalDownloaded = 0;
+        _totalDownloaded = 0;
         for (auto it = _downloadedSize.begin(); it != _downloadedSize.end(); ++it)
         {
             if (it->first == customId)
@@ -1044,7 +1047,7 @@ void AssetsManagerEx::onProgress(double total, double downloaded, const std::str
                 it->second = downloaded;
                 found = true;
             }
-            totalDownloaded += it->second;
+            _totalDownloaded += it->second;
         }
         // Collect information if not registed
         if (!found)
@@ -1068,7 +1071,7 @@ void AssetsManagerEx::onProgress(double total, double downloaded, const std::str
         
         if (_totalEnabled && _updateState == State::UPDATING)
         {
-            float currentPercent = 100 * totalDownloaded / _totalSize;
+            float currentPercent = 100 * _totalDownloaded / _totalSize;
             // Notify at integer level change
             if ((int)currentPercent != (int)_percent) {
                 _percent = currentPercent;
@@ -1122,6 +1125,22 @@ void AssetsManagerEx::onSuccess(const std::string &/*srcUrl*/, const std::string
             fileError(customId, "Asset file verification failed after downloaded");
         }
     }
+}
+
+double AssetsManagerEx::getTotalBytes() const {
+    return _totalSize;
+}
+
+double AssetsManagerEx::getDownloadedBytes() const {
+    return _totalDownloaded;
+}
+
+int AssetsManagerEx::getTotalFiles() const {
+    return _totalToDownload;
+}
+
+int AssetsManagerEx::getDownloadedFiles() const {
+    return _totalToDownload - _totalWaitToDownload;
 }
 
 void AssetsManagerEx::destroyDownloadedVersion()

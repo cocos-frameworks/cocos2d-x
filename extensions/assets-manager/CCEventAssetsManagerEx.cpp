@@ -43,5 +43,12 @@ EventAssetsManagerEx::EventAssetsManagerEx(const std::string& eventName, cocos2d
 {
 }
 
+double EventAssetsManagerEx::getDownloadedBytes() const { return _manager->getDownloadedBytes(); }
+
+double EventAssetsManagerEx::getTotalBytes() const { return _manager->getTotalBytes(); }
+
+int EventAssetsManagerEx::getDownloadedFiles() const { return _manager->getDownloadedFiles(); }
+
+int EventAssetsManagerEx::getTotalFiles() const { return _manager->getTotalFiles(); }
 
 NS_CC_EXT_END

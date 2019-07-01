@@ -127,6 +127,23 @@ public:
      */
     void setVerifyCallback(const std::function<bool(const std::string& path, Manifest::Asset asset)>& callback) {_verifyCallback = callback;};
     
+    
+    /** @brief Gets the total byte size to be downloaded of the update, this will only be available after READY_TO_UPDATE state, under unknown states it will return 0 by default.
+     */
+    double getTotalBytes() const;
+    
+    /** @brief Gets the current downloaded byte size of the update, this will only be available after READY_TO_UPDATE state, under unknown states it will return 0 by default.
+     */
+    double getDownloadedBytes() const;
+    
+    /** @brief Gets the total files count to be downloaded of the update, this will only be available after READY_TO_UPDATE state, under unknown states it will return 0 by default.
+     */
+    int getTotalFiles() const;
+    
+    /** @brief Gets the current downloaded files count of the update, this will only be available after READY_TO_UPDATE state, under unknown states it will return 0 by default.
+     */
+    int getDownloadedFiles() const;
+    
 CC_CONSTRUCTOR_ACCESS:
     
     AssetsManagerEx(const std::string& manifestUrl, const std::string& storagePath);
@@ -303,6 +320,9 @@ private:
     
     //! Total file size need to be downloaded (sum of all file)
     double _totalSize;
+    
+    //! Total downloaded file size (sum of all downloaded files)
+    double _totalDownloaded;
     
     //! Downloaded size for each file
     std::unordered_map<std::string, double> _downloadedSize;
