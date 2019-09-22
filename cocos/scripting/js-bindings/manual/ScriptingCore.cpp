@@ -281,7 +281,7 @@ void js_log(const char *format, ...) {
     va_end(vl);
     if (len > 0)
     {
-        CCLOG("JS: %s", _js_log_buf);
+        CCLOG("cocos2d JS: %s", _js_log_buf);
     }
 }
 

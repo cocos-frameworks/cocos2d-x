@@ -5225,7 +5225,7 @@ bool js_console_log(JSContext *cx, uint32_t argc, jsval *vp)
             log("js_console_log : Error processing arguments");
         }
         else
-            log("%s", msg.c_str());
+            log("cocos2d: %s", msg.c_str());
 
         args.rval().setUndefined();
         return true;

@@ -198,7 +198,7 @@ void log(const char * format, ...)
     fflush(stdout);
 #else
     // Linux, Mac, iOS, etc
-    fprintf(stdout, "%s", buf);
+    fprintf(stdout, "cocos2d: %s", buf);
     fflush(stdout);
 #endif
 
