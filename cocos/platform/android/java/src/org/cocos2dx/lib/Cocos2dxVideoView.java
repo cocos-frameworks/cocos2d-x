@@ -201,9 +201,11 @@ public class Cocos2dxVideoView extends SurfaceView implements MediaPlayerControl
         if((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP)
         {
             if (isPlaying()) {
-                pause();
+				// FIXED BY me
+                //pause();
             } else if(mCurrentState == STATE_PAUSED){
-                resume();
+				// FIXED BY me
+                //resume();
             }
         }
         
