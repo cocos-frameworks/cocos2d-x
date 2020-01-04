@@ -148,8 +148,6 @@ jsval spskeleton_to_jsval(JSContext* cx, spSkeleton& v)
     
     bool ok = JS_DefineProperty(cx, tmp, "x", v.x, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
         JS_DefineProperty(cx, tmp, "y", v.y, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
-        JS_DefineProperty(cx, tmp, "flipX", v.flipX, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
-        JS_DefineProperty(cx, tmp, "flipY", v.flipY, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
         JS_DefineProperty(cx, tmp, "time", v.time, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
         JS_DefineProperty(cx, tmp, "boneCount", v.bonesCount, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
         JS_DefineProperty(cx, tmp, "slotCount", v.slotsCount, JSPROP_ENUMERATE | JSPROP_PERMANENT);
@@ -238,11 +236,8 @@ jsval spslot_to_jsval(JSContext* cx, spSlot& v)
         JS_DefineProperty(cx, tmp, "bone", jsbone, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
         //JS_DefineProperty(cx, tmp, "skeleton", spskeleton_to_jsval(cx, *v.skeleton), NULL, NULL, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
         JS_DefineProperty(cx, tmp, "attachment", jsattachment, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
-        JS_DefineProperty(cx, tmp, "data", jsdata, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
-        JS_DefineProperty(cx, tmp, "attachmentVerticesCapacity", v.attachmentVerticesCapacity, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
-        JS_DefineProperty(cx, tmp, "attachmentVerticesCount", v.attachmentVerticesCount, JSPROP_ENUMERATE | JSPROP_PERMANENT) &&
-        JS_DefineProperty(cx, tmp, "attachmentVertices", *v.attachmentVertices, JSPROP_ENUMERATE | JSPROP_PERMANENT);
-        
+    JS_DefineProperty(cx, tmp, "data", jsdata, JSPROP_ENUMERATE | JSPROP_PERMANENT);
+
     if (ok)
     {
         return OBJECT_TO_JSVAL(tmp);

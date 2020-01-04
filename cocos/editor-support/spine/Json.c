@@ -1,25 +1,25 @@
 /*
- Copyright (c) 2009, Dave Gamble
- Copyright (c) 2013, Esoteric Software
+Copyright (c) 2009, Dave Gamble
+Copyright (c) 2013, Esoteric Software
 
- Permission is hereby granted, dispose of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
+Permission is hereby granted, dispose of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
- */
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
 
 /* Json */
 /* JSON parser in C. */
@@ -54,8 +54,7 @@ const char* Json_getError (void) {
 
 static int Json_strcasecmp (const char* s1, const char* s2) {
 	/* TODO we may be able to elide these NULL checks if we can prove
-	 * the graph and input (only callsite is Json_getItem) should not have NULLs
-	 */
+	the graph and input (only callsite is Json_getItem) should not have NULLs */
 	if (s1 && s2) {
 #if defined(_WIN32)
 		return _stricmp(s1, s2);
@@ -92,29 +91,65 @@ void Json_dispose (Json *c) {
 
 /* Parse the input text to generate a number, and populate the result into item. */
 static const char* parse_number (Json *item, const char* num) {
-	char * endptr;
-	float n;
+	double result = 0.0;
+	int negative = 0;
+	char* ptr = (char*)num;
 
-	/* Using strtod and strtof is slightly more permissive than RFC4627,
-	 * accepting for example hex-encoded floating point, but either
-	 * is often leagues faster than any manual implementation.
-	 *
-	 * We also already know that this starts with [-0-9] from parse_value.
-	 */
-#if __STDC_VERSION__ >= 199901L
-	n = strtof(num, &endptr);
-#else
-	n = (float)strtod( num, &endptr );
-#endif
-	/* ignore errno's ERANGE, which returns +/-HUGE_VAL */
-	/* n is 0 on any other error */
+	if (*ptr == '-') {
+		negative = -1;
+		++ptr;
+	}
 
-	if (endptr != num) {
+	while (*ptr >= '0' && *ptr <= '9') {
+		result = result * 10.0 + (*ptr - '0');
+		++ptr;
+	}
+
+	if (*ptr == '.') {
+		double fraction = 0.0;
+		int n = 0;
+		++ptr;
+
+		while (*ptr >= '0' && *ptr <= '9') {
+			fraction = (fraction * 10.0) + (*ptr - '0');
+			++ptr;
+			++n;
+		}
+		result += fraction / POW(10.0, n);
+	}
+	if (negative) result = -result;
+
+	if (*ptr == 'e' || *ptr == 'E') {
+		double exponent = 0;
+		int expNegative = 0;
+		int n = 0;
+		++ptr;
+
+		if (*ptr == '-') {
+			expNegative = -1;
+			++ptr;
+		} else if (*ptr == '+') {
+			++ptr;
+		}
+
+		while (*ptr >= '0' && *ptr <= '9') {
+			exponent = (exponent * 10.0) + (*ptr - '0');
+			++ptr;
+			++n;
+		}
+
+		if (expNegative)
+			result = result / POW(10, exponent);
+		else
+			result = result * POW(10, exponent);
+	}
+
+	if (ptr != num) {
 		/* Parse success, number found. */
-		item->valueFloat = n;
-		item->valueInt = (int)n;
+		item->valueFloat = (float)result;
+		item->valueInt = (int)result;
 		item->type = Json_Number;
-		return endptr;
+		return ptr;
 	} else {
 		/* Parse failure, ep is set. */
 		ep = num;

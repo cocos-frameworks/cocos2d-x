@@ -1,31 +1,30 @@
 /******************************************************************************
- * Spine Runtimes Software License v2.5
+ * Spine Runtimes License Agreement
+ * Last updated January 1, 2020. Replaces all prior versions.
  *
- * Copyright (c) 2013-2016, Esoteric Software
- * All rights reserved.
+ * Copyright (c) 2013-2020, Esoteric Software LLC
  *
- * You are granted a perpetual, non-exclusive, non-sublicensable, and
- * non-transferable license to use, install, execute, and perform the Spine
- * Runtimes software and derivative works solely for personal or internal
- * use. Without the written permission of Esoteric Software (see Section 2 of
- * the Spine Software License Agreement), you may not (a) modify, translate,
- * adapt, or develop new applications using the Spine Runtimes or otherwise
- * create derivative works or improvements of the Spine Runtimes or (b) remove,
- * delete, alter, or obscure any trademarks or any copyright, trademark, patent,
- * or other intellectual property or proprietary rights notices on or in the
- * Software, including any copy thereof. Redistributions in binary or source
- * form must include this license and terms.
+ * Integration of the Spine Runtimes into software or otherwise creating
+ * derivative works of the Spine Runtimes is permitted under the terms and
+ * conditions of Section 2 of the Spine Editor License Agreement:
+ * http://esotericsoftware.com/spine-editor-license
  *
- * THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
- * EVENT SHALL ESOTERIC SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, BUSINESS INTERRUPTION, OR LOSS OF
- * USE, DATA, OR PROFITS) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
+ * "Products"), provided that each user of the Products must obtain their own
+ * Spine Editor license and redistribution of the Products in any form must
+ * include this license and copyright notice.
+ *
+ * THE SPINE RUNTIMES ARE PROVIDED BY ESOTERIC SOFTWARE LLC "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL ESOTERIC SOFTWARE LLC BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
+ * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 #include <spine/Triangulator.h>
@@ -116,9 +115,9 @@ static int _isConcave(int index, int vertexCount, float* vertices, short* indice
 	int previous = indices[(vertexCount + index - 1) % vertexCount] << 1;
 	int current = indices[index] << 1;
 	int next = indices[(index + 1) % vertexCount] << 1;
-	return !_positiveArea(vertices[previous], vertices[previous + 1], vertices[current], vertices[current + 1],
-						 vertices[next],
-						 vertices[next + 1]);
+	return !_positiveArea(vertices[previous], vertices[previous + 1],
+		vertices[current], vertices[current + 1],
+		vertices[next], vertices[next + 1]);
 }
 
 static int _winding (float p1x, float p1y, float p2x, float p2y, float p3x, float p3y) {
@@ -154,7 +153,7 @@ spShortArray* spTriangulator_triangulate(spTriangulator* self, spFloatArray* ver
 	while (vertexCount > 3) {
 		int previous = vertexCount - 1, next = 1;
 		int previousIndex, nextIndex;
-        i = 0;
+		i = 0;
 		while (1) {
 			if (!isConcave[i]) {
 				int p1 = indices[previous] << 1, p2 = indices[i] << 1, p3 = indices[next] << 1;
@@ -169,13 +168,13 @@ spShortArray* spTriangulator_triangulate(spTriangulator* self, spFloatArray* ver
 					vx = vertices[v]; vy = vertices[v + 1];
 					if (_positiveArea(p3x, p3y, p1x, p1y, vx, vy)) {
 						if (_positiveArea(p1x, p1y, p2x, p2y, vx, vy)) {
-							if (_positiveArea(p2x, p2y, p3x, p3y, vx, vy)) goto outer;
+							if (_positiveArea(p2x, p2y, p3x, p3y, vx, vy)) goto break_outer;
 						}
 					}
 				}
 				break;
 			}
-			outer:
+			break_outer:
 
 			if (next == 0) {
 				do {

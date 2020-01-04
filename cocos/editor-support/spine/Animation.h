@@ -1,31 +1,30 @@
 /******************************************************************************
- * Spine Runtimes Software License v2.5
+ * Spine Runtimes License Agreement
+ * Last updated January 1, 2020. Replaces all prior versions.
  *
- * Copyright (c) 2013-2016, Esoteric Software
- * All rights reserved.
+ * Copyright (c) 2013-2020, Esoteric Software LLC
  *
- * You are granted a perpetual, non-exclusive, non-sublicensable, and
- * non-transferable license to use, install, execute, and perform the Spine
- * Runtimes software and derivative works solely for personal or internal
- * use. Without the written permission of Esoteric Software (see Section 2 of
- * the Spine Software License Agreement), you may not (a) modify, translate,
- * adapt, or develop new applications using the Spine Runtimes or otherwise
- * create derivative works or improvements of the Spine Runtimes or (b) remove,
- * delete, alter, or obscure any trademarks or any copyright, trademark, patent,
- * or other intellectual property or proprietary rights notices on or in the
- * Software, including any copy thereof. Redistributions in binary or source
- * form must include this license and terms.
+ * Integration of the Spine Runtimes into software or otherwise creating
+ * derivative works of the Spine Runtimes is permitted under the terms and
+ * conditions of Section 2 of the Spine Editor License Agreement:
+ * http://esotericsoftware.com/spine-editor-license
  *
- * THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
- * EVENT SHALL ESOTERIC SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, BUSINESS INTERRUPTION, OR LOSS OF
- * USE, DATA, OR PROFITS) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
+ * "Products"), provided that each user of the Products must obtain their own
+ * Spine Editor license and redistribution of the Products in any form must
+ * include this license and copyright notice.
+ *
+ * THE SPINE RUNTIMES ARE PROVIDED BY ESOTERIC SOFTWARE LLC "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL ESOTERIC SOFTWARE LLC BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
+ * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 #ifndef SPINE_ANIMATION_H_
@@ -60,10 +59,11 @@ typedef struct spAnimation {
 } spAnimation;
 
 typedef enum {
-	SP_MIX_POSE_SETUP,
-	SP_MIX_POSE_CURRENT,
-	SP_MIX_POSE_CURRENT_LAYERED
-} spMixPose;
+	SP_MIX_BLEND_SETUP,
+	SP_MIX_BLEND_FIRST,
+	SP_MIX_BLEND_REPLACE,
+	SP_MIX_BLEND_ADD
+} spMixBlend;
 
 typedef enum {
 	SP_MIX_DIRECTION_IN,
@@ -77,7 +77,7 @@ SP_API void spAnimation_dispose (spAnimation* self);
  * @param lastTime The last time the animation was applied.
  * @param events Any triggered events are added. May be null.*/
 SP_API void spAnimation_apply (const spAnimation* self, struct spSkeleton* skeleton, float lastTime, float time, int loop,
-		spEvent** events, int* eventsCount, float alpha, spMixPose pose, spMixDirection direction);
+		spEvent** events, int* eventsCount, float alpha, spMixBlend blend, spMixDirection direction);
 
 #ifdef SPINE_SHORT_NAMES
 typedef spAnimation Animation;
@@ -120,7 +120,7 @@ struct spTimeline {
 
 SP_API void spTimeline_dispose (spTimeline* self);
 SP_API void spTimeline_apply (const spTimeline* self, struct spSkeleton* skeleton, float lastTime, float time, spEvent** firedEvents,
-		int* eventsCount, float alpha, spMixPose pose, spMixDirection direction);
+		int* eventsCount, float alpha, spMixBlend blend, spMixDirection direction);
 SP_API int spTimeline_getPropertyId (const spTimeline* self);
 
 #ifdef SPINE_SHORT_NAMES
@@ -431,7 +431,7 @@ typedef spDeformTimeline DeformTimeline;
 
 /**/
 
-static const int IKCONSTRAINT_ENTRIES = 3;
+static const int IKCONSTRAINT_ENTRIES = 6;
 
 typedef struct spIkConstraintTimeline {
 	spCurveTimeline super;
@@ -451,7 +451,7 @@ typedef struct spIkConstraintTimeline {
 
 SP_API spIkConstraintTimeline* spIkConstraintTimeline_create (int framesCount);
 
-SP_API void spIkConstraintTimeline_setFrame (spIkConstraintTimeline* self, int frameIndex, float time, float mix, int bendDirection);
+SP_API void spIkConstraintTimeline_setFrame (spIkConstraintTimeline* self, int frameIndex, float time, float mix, float softness, int bendDirection, int /*boolean*/ compress, int /**boolean**/ stretch);
 
 #ifdef SPINE_SHORT_NAMES
 typedef spIkConstraintTimeline IkConstraintTimeline;

@@ -1,31 +1,30 @@
 /******************************************************************************
- * Spine Runtimes Software License v2.5
+ * Spine Runtimes License Agreement
+ * Last updated January 1, 2020. Replaces all prior versions.
  *
- * Copyright (c) 2013-2016, Esoteric Software
- * All rights reserved.
+ * Copyright (c) 2013-2020, Esoteric Software LLC
  *
- * You are granted a perpetual, non-exclusive, non-sublicensable, and
- * non-transferable license to use, install, execute, and perform the Spine
- * Runtimes software and derivative works solely for personal or internal
- * use. Without the written permission of Esoteric Software (see Section 2 of
- * the Spine Software License Agreement), you may not (a) modify, translate,
- * adapt, or develop new applications using the Spine Runtimes or otherwise
- * create derivative works or improvements of the Spine Runtimes or (b) remove,
- * delete, alter, or obscure any trademarks or any copyright, trademark, patent,
- * or other intellectual property or proprietary rights notices on or in the
- * Software, including any copy thereof. Redistributions in binary or source
- * form must include this license and terms.
+ * Integration of the Spine Runtimes into software or otherwise creating
+ * derivative works of the Spine Runtimes is permitted under the terms and
+ * conditions of Section 2 of the Spine Editor License Agreement:
+ * http://esotericsoftware.com/spine-editor-license
  *
- * THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
- * EVENT SHALL ESOTERIC SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, BUSINESS INTERRUPTION, OR LOSS OF
- * USE, DATA, OR PROFITS) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
+ * "Products"), provided that each user of the Products must obtain their own
+ * Spine Editor license and redistribution of the Products in any form must
+ * include this license and copyright notice.
+ *
+ * THE SPINE RUNTIMES ARE PROVIDED BY ESOTERIC SOFTWARE LLC "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL ESOTERIC SOFTWARE LLC BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
+ * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 #include <spine/PathConstraint.h>
@@ -35,6 +34,7 @@
 #define PATHCONSTRAINT_NONE -1
 #define PATHCONSTRAINT_BEFORE -2
 #define PATHCONSTRAINT_AFTER -3
+#define EPSILON 0.00001f
 
 spPathConstraint* spPathConstraint_create (spPathConstraintData* data, const spSkeleton* skeleton) {
 	int i;
@@ -81,10 +81,10 @@ void spPathConstraint_apply (spPathConstraint* self) {
 	int/*bool*/tip;
 	float rotateMix = self->rotateMix, translateMix = self->translateMix;
 	int/*bool*/ translate = translateMix > 0, rotate = rotateMix > 0;
+	int lengthSpacing;
 	spPathAttachment* attachment = (spPathAttachment*)self->target->attachment;
 	spPathConstraintData* data = self->data;
-	spSpacingMode spacingMode = data->spacingMode;
-	int lengthSpacing = spacingMode == SP_SPACING_MODE_LENGTH;
+	int percentSpacing = data->spacingMode == SP_SPACING_MODE_PERCENT;
 	spRotateMode rotateMode = data->rotateMode;
 	int tangents = rotateMode == SP_ROTATE_MODE_TANGENT, scale = rotateMode == SP_ROTATE_MODE_CHAIN_SCALE;
 	int boneCount = self->bonesCount, spacesCount = tangents ? boneCount : boneCount + 1;
@@ -103,7 +103,7 @@ void spPathConstraint_apply (spPathConstraint* self) {
 	spaces[0] = 0;
 	lengths = 0;
 	spacing = self->spacing;
-	if (scale || lengthSpacing) {
+	if (scale || !percentSpacing) {
 		if (scale) {
 			if (self->lengthsCount != boneCount) {
 				if (self->lengths) FREE(self->lengths);
@@ -112,14 +112,26 @@ void spPathConstraint_apply (spPathConstraint* self) {
 			}
 			lengths = self->lengths;
 		}
+		lengthSpacing = data->spacingMode == SP_SPACING_MODE_LENGTH;
 		for (i = 0, n = spacesCount - 1; i < n;) {
-			spBone* bone = bones[i];
+			spBone *bone = bones[i];
 			setupLength = bone->data->length;
-			if (setupLength == 0) setupLength = 0.000000001f;
-			x = setupLength * bone->a, y = setupLength * bone->c;
-			length = SQRT(x * x + y * y);
-			if (scale) lengths[i] = length;
-			spaces[++i] =  (lengthSpacing ? setupLength + spacing : spacing) * length / setupLength;
+			if (setupLength < EPSILON) {
+				if (scale) lengths[i] = 0;
+				spaces[++i] = 0;
+			} else if (percentSpacing) {
+				if (scale) {
+					x = setupLength * bone->a, y = setupLength * bone->c;
+					length = SQRT(x * x + y * y);
+					lengths[i] = length;
+				}
+				spaces[++i] = spacing;
+			} else {
+				x = setupLength * bone->a, y = setupLength * bone->c;
+				length = SQRT(x * x + y * y);
+				if (scale) lengths[i] = length;
+				spaces[++i] = (lengthSpacing ? setupLength + spacing : spacing) * length / setupLength;
+			}
 		}
 	} else {
 		for (i = 1; i < spacesCount; i++) {
@@ -128,7 +140,7 @@ void spPathConstraint_apply (spPathConstraint* self) {
 	}
 
 	positions = spPathConstraint_computeWorldPositions(self, attachment, spacesCount, tangents,
-		data->positionMode == SP_POSITION_MODE_PERCENT, spacingMode == SP_SPACING_MODE_PERCENT);
+		data->positionMode == SP_POSITION_MODE_PERCENT, percentSpacing);
 	boneX = positions[0], boneY = positions[1], offsetRotation = self->data->offsetRotation;
 	tip = 0;
 	if (offsetRotation == 0)
@@ -202,7 +214,7 @@ static void _addAfterPosition (float p, float* temp, int i, float* out, int o) {
 
 /* Need to pass 0 as an argument, so VC++ doesn't error with C2124 */
 static int _isNan(float value, float zero) {
-	float _nan =  (float)0.0 / zero;
+	float _nan = (float)0.0 / zero;
 	return 0 == memcmp((void*)&value, (void*)&_nan, sizeof(value));
 }
 
@@ -211,13 +223,23 @@ static void _addCurvePosition (float p, float x1, float y1, float cx1, float cy1
 	float tt, ttt, u, uu, uuu;
 	float ut, ut3, uut3, utt3;
 	float x, y;
-	if (p == 0 || _isNan(p, 0)) p = 0.0001f;
+	if (p == 0 || _isNan(p, 0)) {
+		out[o] = x1;
+		out[o + 1] = y1;
+		out[o + 2] = ATAN2(cy1 - y1, cx1 - x1);
+		return;
+	}
 	tt = p * p, ttt = tt * p, u = 1 - p, uu = u * u, uuu = uu * u;
 	ut = u * p, ut3 = ut * 3, uut3 = u * ut3, utt3 = ut3 * p;
 	x = x1 * uuu + cx1 * uut3 + cx2 * utt3 + x2 * ttt, y = y1 * uuu + cy1 * uut3 + cy2 * utt3 + y2 * ttt;
 	out[o] = x;
 	out[o + 1] = y;
-	if (tangents) out[o + 2] = ATAN2(y - (y1 * uu + cy1 * ut * 2 + cy2 * tt), x - (x1 * uu + cx1 * ut * 2 + cx2 * tt));
+	if (tangents) {
+		if (p < 0.001)
+			out[o + 2] = ATAN2(cy1 - y1, cx1 - x1);
+		else
+			out[o + 2] = ATAN2(y - (y1 * uu + cy1 * ut * 2 + cy2 * tt), x - (x1 * uu + cx1 * ut * 2 + cx2 * tt));
+	}
 }
 
 float* spPathConstraint_computeWorldPositions(spPathConstraint* self, spPathAttachment* path, int spacesCount, int/*bool*/ tangents, int/*bool*/percentPosition, int/**/percentSpacing) {
@@ -243,7 +265,7 @@ float* spPathConstraint_computeWorldPositions(spPathConstraint* self, spPathAtta
 		pathLength = lengths[curveCount];
 		if (percentPosition) position *= pathLength;
 		if (percentSpacing) {
-			for (i = 0; i < spacesCount; i++)
+			for (i = 1; i < spacesCount; i++)
 				spaces[i] *= pathLength;
 		}
 		if (self->worldCount != 8) {
@@ -368,9 +390,12 @@ float* spPathConstraint_computeWorldPositions(spPathConstraint* self, spPathAtta
 		x1 = x2;
 		y1 = y2;
 	}
-	if (percentPosition) position *= pathLength;
+	if (percentPosition)
+		position *= pathLength;
+	else
+		position *= pathLength / path->lengths[curveCount - 1];
 	if (percentSpacing) {
-		for (i = 0; i < spacesCount; i++)
+		for (i = 1; i < spacesCount; i++)
 			spaces[i] *= pathLength;
 	}
 

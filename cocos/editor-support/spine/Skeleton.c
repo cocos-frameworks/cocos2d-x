@@ -1,31 +1,30 @@
 /******************************************************************************
- * Spine Runtimes Software License v2.5
+ * Spine Runtimes License Agreement
+ * Last updated January 1, 2020. Replaces all prior versions.
  *
- * Copyright (c) 2013-2016, Esoteric Software
- * All rights reserved.
+ * Copyright (c) 2013-2020, Esoteric Software LLC
  *
- * You are granted a perpetual, non-exclusive, non-sublicensable, and
- * non-transferable license to use, install, execute, and perform the Spine
- * Runtimes software and derivative works solely for personal or internal
- * use. Without the written permission of Esoteric Software (see Section 2 of
- * the Spine Software License Agreement), you may not (a) modify, translate,
- * adapt, or develop new applications using the Spine Runtimes or otherwise
- * create derivative works or improvements of the Spine Runtimes or (b) remove,
- * delete, alter, or obscure any trademarks or any copyright, trademark, patent,
- * or other intellectual property or proprietary rights notices on or in the
- * Software, including any copy thereof. Redistributions in binary or source
- * form must include this license and terms.
+ * Integration of the Spine Runtimes into software or otherwise creating
+ * derivative works of the Spine Runtimes is permitted under the terms and
+ * conditions of Section 2 of the Spine Editor License Agreement:
+ * http://esotericsoftware.com/spine-editor-license
  *
- * THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
- * EVENT SHALL ESOTERIC SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, BUSINESS INTERRUPTION, OR LOSS OF
- * USE, DATA, OR PROFITS) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
+ * "Products"), provided that each user of the Products must obtain their own
+ * Spine Editor license and redistribution of the Products in any form must
+ * include this license and copyright notice.
+ *
+ * THE SPINE RUNTIMES ARE PROVIDED BY ESOTERIC SOFTWARE LLC "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL ESOTERIC SOFTWARE LLC BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
+ * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 #include <spine/Skeleton.h>
@@ -118,6 +117,9 @@ spSkeleton* spSkeleton_create (spSkeletonData* data) {
 		self->pathConstraints[i] = spPathConstraint_create(self->data->pathConstraints[i], self);
 
 	spColor_setFromFloats(&self->color, 1, 1, 1, 1);
+
+	self->scaleX = 1;
+	self->scaleY = 1;
 
 	spSkeleton_updateCache(self);
 
@@ -217,6 +219,7 @@ static void _sortReset(spBone** bones, int bonesCount) {
 	int i;
 	for (i = 0; i < bonesCount; ++i) {
 		spBone* bone = bones[i];
+		if (!bone->active) continue;
 		if (bone->sorted) _sortReset(bone->children, bone->childrenCount);
 		bone->sorted = 0;
 	}
@@ -228,6 +231,10 @@ static void _sortIkConstraint (_spSkeleton* const internal, spIkConstraint* cons
 	spBone* target = constraint->target;
 	spBone** constrained;
 	spBone* parent;
+
+	constraint->active = constraint->target->active && (!constraint->data->skinRequired || (internal->super.skin != 0 && spIkConstraintDataArray_contains(internal->super.skin->ikConstraints, constraint->data)));
+	if (!constraint->active) return;
+
 	_sortBone(internal, target);
 
 	constrained = constraint->bones;
@@ -244,8 +251,7 @@ static void _sortIkConstraint (_spSkeleton* const internal, spIkConstraint* cons
 				break;
 			}
 		}
-		if (!contains)
-			_addToUpdateCacheReset(internal, child);
+		if (!contains) _addToUpdateCacheReset(internal, child);
 	}
 
 	_addToUpdateCache(internal, SP_UPDATE_IK_CONSTRAINT, constraint);
@@ -262,6 +268,10 @@ static void _sortPathConstraint(_spSkeleton* const internal, spPathConstraint* c
 	spAttachment* attachment;
 	spBone** constrained;
 	spSkeleton* skeleton = SUPER_CAST(spSkeleton, internal);
+
+	constraint->active = constraint->target->bone->active && (!constraint->data->skinRequired || (internal->super.skin != 0 && spPathConstraintDataArray_contains(internal->super.skin->pathConstraints, constraint->data)));
+	if (!constraint->active) return;
+
 	if (skeleton->skin) _sortPathConstraintAttachment(internal, skeleton->skin, slotIndex, slotBone);
 	if (skeleton->data->defaultSkin && skeleton->data->defaultSkin != skeleton->skin)
 		_sortPathConstraintAttachment(internal, skeleton->data->defaultSkin, slotIndex, slotBone);
@@ -289,6 +299,10 @@ static void _sortTransformConstraint(_spSkeleton* const internal, spTransformCon
 	spBone** constrained;
 	spBone* child;
 	int /*boolean*/ contains = 0;
+
+	constraint->active = constraint->target->active && (!constraint->data->skinRequired || (internal->super.skin != 0 && spTransformConstraintDataArray_contains(internal->super.skin->transformConstraints, constraint->data)));
+	if (!constraint->active) return;
+
 	_sortBone(internal, constraint->target);
 
 	constrained = constraint->bones;
@@ -340,8 +354,23 @@ void spSkeleton_updateCache (spSkeleton* self) {
 	internal->updateCacheResetCount = 0;
 
 	bones = self->bones;
-	for (i = 0; i < self->bonesCount; ++i)
-		bones[i]->sorted = 0;
+	for (i = 0; i < self->bonesCount; ++i) {
+		spBone* bone = bones[i];
+		bone->sorted = bone->data->skinRequired;
+		bone->active = !bone->sorted;
+	}
+
+	if (self->skin) {
+		spBoneDataArray* skinBones = self->skin->bones;
+		for(i = 0; i < skinBones->size; i++) {
+			spBone* bone = self->bones[skinBones->items[i]->index];
+			do {
+				bone->sorted = 0;
+				bone->active = -1;
+				bone = bone->parent;
+			} while (bone != 0);
+		}
+	}
 
 	/* IK first, lowest hierarchy depth first. */
 	ikConstraints = self->ikConstraints;
@@ -351,14 +380,14 @@ void spSkeleton_updateCache (spSkeleton* self) {
 	constraintCount = ikCount + transformCount + pathCount;
 
 	i = 0;
-	outer:
+	continue_outer:
 	for (; i < constraintCount; i++) {
 		for (ii = 0; ii < ikCount; ii++) {
 			spIkConstraint* ikConstraint = ikConstraints[ii];
 			if (ikConstraint->data->order == i) {
 				_sortIkConstraint(internal, ikConstraint);
 				i++;
-				goto outer;
+				goto continue_outer;
 			}
 		}
 
@@ -367,7 +396,7 @@ void spSkeleton_updateCache (spSkeleton* self) {
 			if (transformConstraint->data->order == i) {
 				_sortTransformConstraint(internal, transformConstraint);
 				i++;
-				goto outer;
+				goto continue_outer;
 			}
 		}
 
@@ -376,7 +405,7 @@ void spSkeleton_updateCache (spSkeleton* self) {
 			if (pathConstraint->data->order == i) {
 				_sortPathConstraint(internal, pathConstraint);
 				i++;
-				goto outer;
+				goto continue_outer;
 			}
 		}
 	}
@@ -433,6 +462,9 @@ void spSkeleton_setBonesToSetupPose (const spSkeleton* self) {
 	for (i = 0; i < self->ikConstraintsCount; ++i) {
 		spIkConstraint* ikConstraint = self->ikConstraints[i];
 		ikConstraint->bendDirection = ikConstraint->data->bendDirection;
+		ikConstraint->compress = ikConstraint->data->compress;
+		ikConstraint->stretch = ikConstraint->data->stretch;
+		ikConstraint->softness = ikConstraint->data->softness;
 		ikConstraint->mix = ikConstraint->data->mix;
 	}
 
@@ -503,6 +535,7 @@ int spSkeleton_setSkinByName (spSkeleton* self, const char* skinName) {
 }
 
 void spSkeleton_setSkin (spSkeleton* self, spSkin* newSkin) {
+	if (self->skin == newSkin) return;
 	if (newSkin) {
 		if (self->skin)
 			spSkin_attachAll(newSkin, self, self->skin);
@@ -519,6 +552,7 @@ void spSkeleton_setSkin (spSkeleton* self, spSkin* newSkin) {
 		}
 	}
 	CONST_CAST(spSkin*, self->skin) = newSkin;
+	spSkeleton_updateCache(self);
 }
 
 spAttachment* spSkeleton_getAttachmentForSlotName (const spSkeleton* self, const char* slotName, const char* attachmentName) {

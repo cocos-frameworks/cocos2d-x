@@ -27,25 +27,53 @@
  * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#ifndef SPINE_SHAREDLIB_H
-#define SPINE_SHAREDLIB_H
+#ifndef SPINE_SKELETONBATCH_H_
+#define SPINE_SKELETONBATCH_H_
 
-#ifdef _WIN32
-#define DLLIMPORT __declspec(dllimport)
-#define DLLEXPORT __declspec(dllexport)
-#else
-#ifndef DLLIMPORT
-#define DLLIMPORT
-#endif
-#ifndef DLLEXPORT
-#define DLLEXPORT
-#endif
+#include "cocos2d.h"
+#if COCOS2D_VERSION < 0x00040000
+
+#include <spine/spine.h>
+#include <vector>
+
+namespace spine {
+
+	class SkeletonBatch {
+	public:
+		static SkeletonBatch* getInstance ();
+
+		static void destroyInstance ();
+
+		void update (float delta);
+
+		cocos2d::V3F_C4B_T2F* allocateVertices(uint32_t numVertices);
+		void deallocateVertices(uint32_t numVertices);
+		unsigned short* allocateIndices(uint32_t numIndices);
+		void deallocateIndices(uint32_t numVertices);
+		cocos2d::TrianglesCommand* addCommand(cocos2d::Renderer* renderer, float globalOrder, cocos2d::Texture2D* texture, cocos2d::GLProgramState* glProgramState, cocos2d::BlendFunc blendType, const cocos2d::TrianglesCommand::Triangles& triangles, const cocos2d::Mat4& mv, uint32_t flags);
+
+	protected:
+		SkeletonBatch ();
+		virtual ~SkeletonBatch ();
+
+		void reset ();
+
+		cocos2d::TrianglesCommand* nextFreeCommand ();
+
+		// pool of commands
+		std::vector<cocos2d::TrianglesCommand*> _commandsPool;
+		uint32_t _nextFreeCommand;
+
+		// pool of vertices
+		std::vector<cocos2d::V3F_C4B_T2F> _vertices;
+		uint32_t _numVertices;
+
+		// pool of indices
+		std::vector<unsigned short> _indices;
+	};
+
+}
+
 #endif
 
-#ifdef SPINEPLUGIN_API
-#define SP_API SPINEPLUGIN_API
-#else
-#define SP_API
-#endif
-
-#endif /* SPINE_SHAREDLIB_H */
+#endif // SPINE_SKELETONBATCH_H_

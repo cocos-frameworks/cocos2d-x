@@ -1,32 +1,31 @@
 /******************************************************************************
-* Spine Runtimes Software License v2.5
-*
-* Copyright (c) 2013-2016, Esoteric Software
-* All rights reserved.
-*
-* You are granted a perpetual, non-exclusive, non-sublicensable, and
-* non-transferable license to use, install, execute, and perform the Spine
-* Runtimes software and derivative works solely for personal or internal
-* use. Without the written permission of Esoteric Software (see Section 2 of
-* the Spine Software License Agreement), you may not (a) modify, translate,
-* adapt, or develop new applications using the Spine Runtimes or otherwise
-* create derivative works or improvements of the Spine Runtimes or (b) remove,
-* delete, alter, or obscure any trademarks or any copyright, trademark, patent,
-* or other intellectual property or proprietary rights notices on or in the
-* Software, including any copy thereof. Redistributions in binary or source
-* form must include this license and terms.
-*
-* THIS SOFTWARE IS PROVIDED BY ESOTERIC SOFTWARE "AS IS" AND ANY EXPRESS OR
-* IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-* EVENT SHALL ESOTERIC SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-* SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-* PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, BUSINESS INTERRUPTION, OR LOSS OF
-* USE, DATA, OR PROFITS) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-* IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*****************************************************************************/
+ * Spine Runtimes License Agreement
+ * Last updated January 1, 2020. Replaces all prior versions.
+ *
+ * Copyright (c) 2013-2020, Esoteric Software LLC
+ *
+ * Integration of the Spine Runtimes into software or otherwise creating
+ * derivative works of the Spine Runtimes is permitted under the terms and
+ * conditions of Section 2 of the Spine Editor License Agreement:
+ * http://esotericsoftware.com/spine-editor-license
+ *
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
+ * "Products"), provided that each user of the Products must obtain their own
+ * Spine Editor license and redistribution of the Products in any form must
+ * include this license and copyright notice.
+ *
+ * THE SPINE RUNTIMES ARE PROVIDED BY ESOTERIC SOFTWARE LLC "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL ESOTERIC SOFTWARE LLC BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
+ * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *****************************************************************************/
 
 #include <spine/Atlas.h>
 #include <ctype.h>
@@ -70,7 +69,7 @@ static void trim(Str* str) {
 		(str->begin)++;
 	if (str->begin == str->end) return;
 	str->end--;
-	while (isspace((unsigned char)*str->end) && str->end >= str->begin)
+	while (((unsigned char)*str->end == '\r') && str->end >= str->begin)
 		str->end--;
 	str->end++;
 }
@@ -182,9 +181,8 @@ spAtlas* spAtlas_create(const char* begin, int length, const char* dir, void* re
 	self->rendererObject = rendererObject;
 
 	while (readLine(&begin, end, &str)) {
-		if (str.end - str.begin == 0) {
+		if (str.end - str.begin == 0)
 			page = 0;
-		}
 		else if (!page) {
 			char* name = mallocString(&str);
 			char* path = MALLOC(char, dirLength + needsSlash + strlen(name) + 1);
@@ -233,8 +231,7 @@ spAtlas* spAtlas_create(const char* begin, int length, const char* dir, void* re
 
 			_spAtlasPage_createTexture(page, path);
 			FREE(path);
-		}
-		else {
+		} else {
 			spAtlasRegion *region = spAtlasRegion_create();
 			if (lastRegion)
 				lastRegion->next = region;
@@ -246,7 +243,13 @@ spAtlas* spAtlas_create(const char* begin, int length, const char* dir, void* re
 			region->name = mallocString(&str);
 
 			if (!readValue(&begin, end, &str)) return abortAtlas(self);
-			region->rotate = equals(&str, "true");
+			if (equals(&str, "true"))
+				region->degrees = 90;
+			else if (equals(&str, "false"))
+				region->degrees = 0;
+			else
+				region->degrees = toInt(&str);
+			region->rotate = region->degrees == 90;
 
 			if (readTuple(&begin, end, tuple) != 2) return abortAtlas(self);
 			region->x = toInt(tuple);
@@ -261,8 +264,7 @@ spAtlas* spAtlas_create(const char* begin, int length, const char* dir, void* re
 			if (region->rotate) {
 				region->u2 = (region->x + region->height) / (float)page->width;
 				region->v2 = (region->y + region->width) / (float)page->height;
-			}
-			else {
+			} else {
 				region->u2 = (region->x + region->width) / (float)page->width;
 				region->v2 = (region->y + region->height) / (float)page->height;
 			}
