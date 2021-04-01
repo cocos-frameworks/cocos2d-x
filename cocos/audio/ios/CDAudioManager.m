@@ -337,7 +337,7 @@ static BOOL configured = FALSE;
 #else
     UInt32 isPlaying = 0;
     UInt32 varSize = sizeof(isPlaying);
-    AudioSessionGetProperty (kAudioSessionProperty_OtherAudioIsPlaying, &varSize, &isPlaying);
+    AudioSessionGetProperty (0, &varSize, &isPlaying);
     return (isPlaying != 0);
 #endif
 }
@@ -495,12 +495,8 @@ static BOOL configured = FALSE;
 #else    
     CFStringRef newAudioRoute;
     UInt32 propertySize = sizeof (CFStringRef);
-    
-    AudioSessionGetProperty (
-                             kAudioSessionProperty_AudioRoute,
-                             &propertySize,
-                             &newAudioRoute
-                             );
+
+    return YES;
     
     if (newAudioRoute == NULL) {
         //Don't expect this to happen but playing safe otherwise a null in the CFStringCompare will cause a crash
